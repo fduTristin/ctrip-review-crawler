@@ -1,6 +1,8 @@
 import requests
 import json
 from datetime import datetime, timedelta
+import concurrent.futures
+from tqdm import tqdm
 
 hotels = {}
 
@@ -102,10 +104,16 @@ def _fetchHotels(pageIndex, cityId=2):
 
 def fetchHotels(cityId, numPages=10, savePath="hotels.json"):
     allHotels = {}
-    for pageIndex in range(1, numPages + 1):
-        hotels = _fetchHotels(pageIndex, cityId=cityId)
-        allHotels.update(hotels)
-    
+
+    def fetch_page(pageIndex):
+        return _fetchHotels(pageIndex, cityId=cityId)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(fetch_page, pageIndex) for pageIndex in range(1, numPages + 1)]
+        for future in tqdm(concurrent.futures.as_completed(futures), total=numPages, desc="Fetching Hotels"):
+            hotels = future.result()
+            allHotels.update(hotels)
+
     with open(savePath, "w", encoding="utf-8") as f:
         json.dump(allHotels, f, ensure_ascii=False, indent=4)
     
@@ -114,4 +122,4 @@ def fetchHotels(cityId, numPages=10, savePath="hotels.json"):
 
 # just for testing
 if __name__ == "__main__":
-    fetchHotels(cityId=2, numPages=10, savePath="hotels.json")
+    fetchHotels(cityId=2, numPages=50, savePath="hotels.json")

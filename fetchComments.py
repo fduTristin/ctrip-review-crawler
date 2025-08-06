@@ -1,5 +1,7 @@
 import requests
 import json
+import time
+from concurrent.futures import ThreadPoolExecutor
 
 def fetchComments(hotelId, pageIndex):
  
@@ -84,20 +86,20 @@ def fetchComments(hotelId, pageIndex):
 
 def fetchHotelComments(hotelId, numPages=10):
     allComments = []
-    for pageIndex in range(1, numPages + 1):
-        comments = fetchComments(hotelId, pageIndex)
-        allComments.extend(comments)
-    
+
+    def fetch_page(pageIndex):
+        return fetchComments(hotelId, pageIndex)
+
+    with ThreadPoolExecutor(max_workers=2) as executor: 
+        results = executor.map(fetch_page, range(1, numPages + 1))
+        for comments in results:
+            allComments.extend(comments)
+
     return allComments
 
 # just for testing
 if __name__ == "__main__":
-    allComments = []
-    for pageIndex in range(1,1000):
-        comments = fetchComments(5545568, pageIndex)
-        if comments == []:
-            break
-        allComments.extend(comments)
+    allComments = fetchHotelComments(5545568, numPages=50)
 
     with open("comments.json", "w", encoding="utf-8") as f:
         json.dump(allComments, f, ensure_ascii=False, indent=4)

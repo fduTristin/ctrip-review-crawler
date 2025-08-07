@@ -53,7 +53,7 @@ def fetchComments(hotelId, pageIndex):
     # 发起网络请求
     r = requests.post(url, json=formData, headers=headers)
     r.raise_for_status()
-    r.encoding = r.apparent_encoding
+    r.encoding = "utf-8"
 
     if not r.text.strip():
         print("Error: Empty response from server.")
